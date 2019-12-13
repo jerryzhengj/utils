@@ -1,9 +1,9 @@
 package serial
 
-
 import (
 	"errors"
 	s "github.com/tarm/serial"
+	"sync"
 )
 
 const (
@@ -21,6 +21,8 @@ type Port struct {
 
 	// 连接
 	conn *s.Port
+
+	lock *sync.RWMutex
 
 	readable bool
 
