@@ -15,7 +15,7 @@ func Open(options *Options)(session *Port){
 	log.Info(fmt.Sprintf("Open connection %s:%d", options.PortName, options.BaudRate))
 
 	var readTimeout int64 = -1
-	if session.opts.readMode != ReadModeActive {
+	if session.Opts.readMode != ReadModeActive {
 		readTimeout = options.Timeout
 	}
 	c := &s.Config{
@@ -30,12 +30,12 @@ func Open(options *Options)(session *Port){
 		panic(err)
 	}
 	session = &Port{
-		opts: *options,
-		conn: conn,
-		readable: true,
-		readChan: make(chan byte,1024),
+		Opts: *options,
+		Conn: conn,
+		Readable: true,
+		ReadChan: make(chan byte,1024),
 	}
-    if session.opts.readMode == ReadModeActive{
+    if session.Opts.readMode == ReadModeActive{
 		go readToChannel(session)
 	}
 	return session
@@ -43,10 +43,10 @@ func Open(options *Options)(session *Port){
 
 func readToChannel(session *Port){
 	p := make([]byte, 1)
-	for session.readable {
-		readSize, err := session.conn.Read(p)
+	for session.Readable {
+		readSize, err := session.Conn.Read(p)
 		if err == nil && readSize > 0{
-			session.readChan<- p[0]
+			session.ReadChan<- p[0]
 		}else if err != nil && err != io.EOF {
 			log.Errorf("readToChannel failed with error:%s",err)
 			panic(err)
@@ -55,14 +55,14 @@ func readToChannel(session *Port){
 }
 
 func (session *Port)Close(){
-	session.readable = false
+	session.Readable = false
 	time.Sleep(100)
-	close(session.readChan)
-	session.conn.Close()
+	close(session.ReadChan)
+	session.Conn.Close()
 }
 
 func (session *Port)Read(startTimeMilSec int64,size int)([]byte,error){
-    if session.opts.readMode == ReadModeActive {
+    if session.Opts.readMode == ReadModeActive {
         return session.readFromChannel(startTimeMilSec,size)
 	}else{
 		return session.readFromSerial(startTimeMilSec,size)
@@ -75,7 +75,7 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 	buffer := bytes.Buffer{}
 	for {
 		p := make([]byte, size - hasRead)
-		readSize, err := session.conn.Read(p)
+		readSize, err := session.Conn.Read(p)
 		log.Debugf("readNbytes size:%d,error=%v", readSize,err)
 		if err != nil {
 			if err != io.EOF {
@@ -90,7 +90,7 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 
 		if hasRead >= size {
 			break
-		}else if session.opts.Timeout > 0 && time.Now().UnixNano()/1000000 - startTimeMilSec > session.opts.Timeout{
+		}else if session.Opts.Timeout > 0 && time.Now().UnixNano()/1000000 - startTimeMilSec > session.Opts.Timeout{
 			return nil,errors.New("read serial timeout")
 		}
 	}
@@ -105,7 +105,7 @@ func (session Port)readFromChannel(startTimeMilSec int64,size int)([]byte,error)
 	buffer := make([]byte, size)
 	for {
 		select {
-		case b := <-session.readChan:
+		case b := <-session.ReadChan:
 			buffer[hasRead] = b
 			hasRead++
 			if hasRead >= size {

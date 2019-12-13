@@ -17,16 +17,16 @@ var ReadTimeoutErr = errors.New("read timeout")
 
 type Port struct {
 	// 配置
-	opts Options
+	Opts Options
 
 	// 连接
-	conn *s.Port
+	Conn *s.Port
 
-	lock *sync.RWMutex
+	Lock *sync.RWMutex
 
-	readable bool
+	Readable bool
 
-	readChan chan byte
+	ReadChan chan byte
 }
 
 type Options struct {
