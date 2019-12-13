@@ -1,15 +1,18 @@
 package zap
 
 import (
+	"github.com/lestrrat/go-file-rotatelogs"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"io"
 	"os"
 	"strings"
 	"time"
 )
 
-const callerSkip  = 1
+const CallerSkip int = 1
+
 type zapLog struct{
 	*zap.SugaredLogger
 }
@@ -25,11 +28,15 @@ func init(){
 		logLevel,
 	)
 	log = zapLog{
-		zap.New(core, zap.AddCaller(),zap.AddCallerSkip(callerSkip)).Sugar(),
+		zap.New(core, zap.AddCaller(),zap.AddCallerSkip(CallerSkip)).Sugar(),
 	}
 }
 
 func SetLevel(level string){
+	logLevel.SetLevel(parseLevel(level))
+}
+
+func parseLevel(level string) zapcore.Level{
 	sLevel := strings.ToLower(level)
 	l := zap.InfoLevel
 	switch sLevel {
@@ -51,7 +58,7 @@ func SetLevel(level string){
 		l = zap.InfoLevel
 	}
 
-	logLevel.SetLevel(l)
+	return l
 }
 
 func Debug(args ...interface{}) {
@@ -134,33 +141,17 @@ func defaultEncoderConfig() zapcore.EncoderConfig {
 	}
 }
 
-func InitLogger(logpath string, loglevel string) *zap.SugaredLogger {
-
-	hook := lumberjack.Logger{
-		Filename:   logpath, // 日志文件路径
-		MaxSize:    128,     // megabytes
-		MaxBackups: 30,      // 最多保留300个备份
-		MaxAge:     7,       // days
-		Compress:   true,    // 是否压缩 disabled by default
+func InitLogger(logPath,logLevel string,dailyBackup bool,maxSize,maxBackups,maxAge int) *zap.SugaredLogger {
+    var w zapcore.WriteSyncer
+	if dailyBackup {
+		hook := timeHook(logPath,maxAge,maxBackups)
+		w = zapcore.AddSync(hook)
+	}else{
+		hook := sizeHook(logPath,maxSize,maxBackups,maxAge)
+		w = zapcore.AddSync(&hook)
 	}
 
-	w := zapcore.AddSync(&hook)
-
-	// 设置日志级别,debug可以打印出info,debug,warn；info级别可以打印warn，info；warn只能打印warn
-	// debug->info->warn->error
-	var level zapcore.Level
-	switch loglevel {
-	case "debug":
-		level = zap.DebugLevel
-	case "info":
-		level = zap.InfoLevel
-	case "error":
-		level = zap.ErrorLevel
-	case "warn":
-		level = zap.WarnLevel
-	default:
-		level = zap.InfoLevel
-	}
+	var level  = parseLevel(logLevel)
 	encoderConfig := zap.NewProductionEncoderConfig()
 	// 时间格式
 	encoderConfig.EncodeTime = defaultTimeEncoder
@@ -171,14 +162,45 @@ func InitLogger(logpath string, loglevel string) *zap.SugaredLogger {
 			w),
 		level,
 	)
-	logger := zap.New(core, zap.AddCaller()).Sugar()
-	//logger.Sugar()
 
-	//logger := zap.New(core)
-	logger.Info("DefaultLogger init success")
+	log = zapLog{
+		zap.New(core, zap.AddCaller(),zap.AddCallerSkip(CallerSkip)).Sugar(),
+	}
+	log.Info("DefaultLogger init success")
 
-
-	return logger
+	return log.SugaredLogger
 }
+
+
+//按时间分割日志
+func timeHook(filename string, maxAge,maxBackups int) io.Writer {
+	hook, err := rotatelogs.New(
+		filename+".%Y%m%d",
+		rotatelogs.WithLinkName(filename),
+		rotatelogs.WithRotationCount(maxBackups),
+		rotatelogs.WithMaxAge(time.Hour * 24 * time.Duration(maxAge)),
+		rotatelogs.WithRotationTime(time.Hour * 24),
+	)
+
+	if err != nil {
+		panic(err)
+	}
+	return hook
+}
+
+// 按文件大小分割日志
+func sizeHook(logpath string, maxSize,maxBackups,maxAge int) lumberjack.Logger{
+	hook :=lumberjack.Logger{
+		Filename:   logpath, // 日志文件路径
+		MaxSize:    maxSize,     // megabytes
+		MaxBackups: maxBackups,      // 最多保留备份的个数
+		MaxAge:     maxAge,       // days
+		Compress:   false,    // 是否压缩 disabled by default
+	}
+
+	return hook
+
+}
+
 
 
