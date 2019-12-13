@@ -7,7 +7,7 @@ import (
 	"os"
 )
 
-type configEnv struct{
+type ConfigEnv struct{
 	configFile string
 	configModule interface{}
 	metaData toml.MetaData
@@ -15,15 +15,15 @@ type configEnv struct{
 }
 
 
-func New(configFile string ,configModule interface{}) *configEnv{
-	return &configEnv{
+func New(configFile string ,configModule interface{}) *ConfigEnv{
+	return &ConfigEnv{
 		configFile: configFile,
 		configModule: configModule,
 		isLoad: false,
 	}
 }
 
-func (conf *configEnv)Load() (interface{},error){
+func (conf *ConfigEnv)Load() (interface{},error){
 
 	if m, err := toml.DecodeFile(conf.configFile, conf.configModule); err == nil {
 		log.Infof("Load config[%s] success",conf.configFile)
@@ -36,12 +36,12 @@ func (conf *configEnv)Load() (interface{},error){
 	}
 }
 
-func (conf *configEnv)Refresh() error{
+func (conf *ConfigEnv)Refresh() error{
      _ ,err :=conf.Load()
      return err
 }
 
-func (conf *configEnv)GetCurrentConfig()(interface{},error){
+func (conf *ConfigEnv)GetCurrentConfig()(interface{},error){
 	if !conf.isLoad{
 		return conf.Load()
 	}else{
@@ -49,7 +49,7 @@ func (conf *configEnv)GetCurrentConfig()(interface{},error){
 	}
 }
 
-func (conf *configEnv)Save()error{
+func (conf *ConfigEnv)Save()error{
 	if !conf.isLoad{
 		return errors.New("config isn't loaded")
 	}
