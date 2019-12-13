@@ -31,9 +31,9 @@ func Open(options *Options)(session *Port){
 	}
 	session = &Port{
 		Opts: *options,
-		Conn: conn,
-		Readable: true,
-		ReadChan: make(chan byte,1024),
+		conn: conn,
+		readable: true,
+		readChan: make(chan byte,1024),
 	}
     if session.Opts.readMode == ReadModeActive{
 		go readToChannel(session)
@@ -43,10 +43,10 @@ func Open(options *Options)(session *Port){
 
 func readToChannel(session *Port){
 	p := make([]byte, 1)
-	for session.Readable {
-		readSize, err := session.Conn.Read(p)
+	for session.readable {
+		readSize, err := session.conn.Read(p)
 		if err == nil && readSize > 0{
-			session.ReadChan<- p[0]
+			session.readChan<- p[0]
 		}else if err != nil && err != io.EOF {
 			log.Errorf("readToChannel failed with error:%s",err)
 			panic(err)
@@ -55,10 +55,16 @@ func readToChannel(session *Port){
 }
 
 func (session *Port)Close(){
-	session.Readable = false
+	session.readable = false
 	time.Sleep(100)
-	close(session.ReadChan)
-	session.Conn.Close()
+	close(session.readChan)
+	session.conn.Close()
+}
+
+func (session *Port)Write(data []byte)(int, error) {
+	defer session.lock.Unlock()
+	session.lock.Lock()
+	return session.conn.Write(data)
 }
 
 func (session *Port)Read(startTimeMilSec int64,size int)([]byte,error){
@@ -75,7 +81,7 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 	buffer := bytes.Buffer{}
 	for {
 		p := make([]byte, size - hasRead)
-		readSize, err := session.Conn.Read(p)
+		readSize, err := session.conn.Read(p)
 		log.Debugf("readNbytes size:%d,error=%v", readSize,err)
 		if err != nil {
 			if err != io.EOF {
@@ -105,7 +111,7 @@ func (session Port)readFromChannel(startTimeMilSec int64,size int)([]byte,error)
 	buffer := make([]byte, size)
 	for {
 		select {
-		case b := <-session.ReadChan:
+		case b := <-session.readChan:
 			buffer[hasRead] = b
 			hasRead++
 			if hasRead >= size {

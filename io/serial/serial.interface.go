@@ -20,13 +20,13 @@ type Port struct {
 	Opts Options
 
 	// 连接
-	Conn *s.Port
+	conn *s.Port
 
-	Lock *sync.RWMutex
+	lock *sync.RWMutex
 
-	Readable bool
+	readable bool
 
-	ReadChan chan byte
+	readChan chan byte
 }
 
 type Options struct {
