@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const defaultTimeout = time.Duration(8760) * time.Hour
+
 func Open(options *Options)(session *Port){
 	log.Infof("Open connection %s:%d", options.PortName, options.BaudRate)
 
@@ -72,7 +74,7 @@ func (session *Port)Write(data []byte)(int, error) {
 
 func (session *Port)Read(startTimeMilSec int64,size int)([]byte,error){
     if session.Opts.ReadMode == ReadModeActive {
-        return session.readFromChannel(startTimeMilSec,size)
+        return session.readFromChannel(size)
 	}else{
 		return session.readFromSerial(startTimeMilSec,size)
 	}
@@ -99,7 +101,8 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 
 		if hasRead >= size {
 			break
-		}else if session.Opts.Timeout > 0 && time.Now().UnixNano()/1000000 - startTimeMilSec > session.Opts.Timeout{
+		}else if startTimeMilSec > 0 && session.Opts.Timeout > 0 &&
+			time.Now().UnixNano()/1000000 - startTimeMilSec > session.Opts.Timeout{
 			return nil,errors.New("read serial timeout")
 		}
 	}
@@ -109,7 +112,12 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 	return data,nil
 }
 
-func (session Port)readFromChannel(startTimeMilSec int64,size int)([]byte,error) {
+func (session Port)readFromChannel(size int)([]byte,error) {
+	timeout := defaultTimeout
+	if session.Opts.Timeout > 0{
+		timeout =time.Duration(session.Opts.Timeout) * time.Millisecond
+	}
+
 	hasRead := 0
 	buffer := make([]byte, size)
 	for {
@@ -121,7 +129,7 @@ func (session Port)readFromChannel(startTimeMilSec int64,size int)([]byte,error)
 				log.Debugf("readFromSerial bytes:%v",buffer)
 				return buffer, nil
 			}
-		case <-time.After(time.Duration(startTimeMilSec) * time.Millisecond):
+		case <-time.After(timeout):
 			return buffer, ReadTimeoutErr
 		}
 	}
