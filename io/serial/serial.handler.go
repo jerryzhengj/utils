@@ -3,21 +3,22 @@ package serial
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	log "github.com/jerryzhengj/utils/log/zap"
 	s "github.com/tarm/serial"
 	"go.uber.org/zap"
 	"io"
+	"sync"
 	"time"
 )
 
 func Open(options *Options)(session *Port){
-	log.Info(fmt.Sprintf("Open connection %s:%d", options.PortName, options.BaudRate))
+	log.Infof("Open connection %s:%d", options.PortName, options.BaudRate)
 
 	var readTimeout int64 = -1
-	if session.Opts.readMode != ReadModeActive {
+	if options.ReadMode != ReadModeActive {
 		readTimeout = options.Timeout
 	}
+	log.Infof("port readTimeout=%d, readMode:%d", readTimeout, options.ReadMode)
 	c := &s.Config{
 		Name: options.PortName,
 		Baud: options.BaudRate,
@@ -34,8 +35,10 @@ func Open(options *Options)(session *Port){
 		conn: conn,
 		readable: true,
 		readChan: make(chan byte,1024),
+		lock: new(sync.RWMutex),
 	}
-    if session.Opts.readMode == ReadModeActive{
+    if session.Opts.ReadMode == ReadModeActive{
+		log.Infof("start to readToChannel")
 		go readToChannel(session)
 	}
 	return session
@@ -68,7 +71,7 @@ func (session *Port)Write(data []byte)(int, error) {
 }
 
 func (session *Port)Read(startTimeMilSec int64,size int)([]byte,error){
-    if session.Opts.readMode == ReadModeActive {
+    if session.Opts.ReadMode == ReadModeActive {
         return session.readFromChannel(startTimeMilSec,size)
 	}else{
 		return session.readFromSerial(startTimeMilSec,size)

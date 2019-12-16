@@ -41,7 +41,7 @@ type Options struct {
 	Timeout int64
 
 	// 读模式. 1:默认模式，调用readNbytes才开始读  2: 打开端口连接后就持续读
-	readMode int
+	ReadMode int
 }
 
 type Callback func(data []byte)
