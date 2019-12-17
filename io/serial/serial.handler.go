@@ -121,12 +121,13 @@ func (session Port)readFromChannel(size int)([]byte,error) {
 	hasRead := 0
 	buffer := make([]byte, size)
 	for {
+		log.Debugf("start to execute select")
 		select {
 		case b := <-session.readChan:
 			buffer[hasRead] = b
 			hasRead++
 			if hasRead >= size {
-				log.Debugf("readFromSerial bytes:%v",buffer)
+				log.Debugf("readFromChannel bytes:%v",buffer)
 				return buffer, nil
 			}
 		case <-time.After(timeout):
