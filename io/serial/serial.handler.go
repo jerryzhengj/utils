@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const defaultTimeout = time.Duration(8760) * time.Hour
+const defaultTimeout = time.Duration(24 * 365 * 100 * time.Hour)
 
 func Open(options *Options)(session *Port){
 	log.Infof("Open connection %s:%d", options.PortName, options.BaudRate)
@@ -61,7 +61,7 @@ func readToChannel(session *Port){
 
 func (session *Port)Close(){
 	session.readable = false
-	time.Sleep(100)
+	time.Sleep(time.Millisecond * 50)
 	close(session.readChan)
 	session.conn.Close()
 }
@@ -87,7 +87,7 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 	for {
 		p := make([]byte, size - hasRead)
 		readSize, err := session.conn.Read(p)
-		log.Debugf("readNbytes size:%d,error=%v", readSize,err)
+		//log.Debugf("readNbytes size:%d,error=%v", readSize,err)
 		if err != nil {
 			if err != io.EOF {
 				log.Errorf("readNbytesFromSerial failed with error:%s",err)
@@ -121,7 +121,6 @@ func (session Port)readFromChannel(size int)([]byte,error) {
 	hasRead := 0
 	buffer := make([]byte, size)
 	for {
-		log.Debugf("start to execute select")
 		select {
 		case b := <-session.readChan:
 			buffer[hasRead] = b
