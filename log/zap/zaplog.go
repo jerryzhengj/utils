@@ -158,7 +158,7 @@ func InitLogger(logPath,logLevel string,dailyBackup bool,maxSize,maxBackups,maxA
 
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(defaultEncoderConfig()),
-		zapcore.NewMultiWriteSyncer(w),
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout),w),
 		level,
 	)
 
