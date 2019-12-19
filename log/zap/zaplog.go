@@ -161,6 +161,11 @@ func InitLogger(logconf *ZaplogConf){
 }
 
 func setupLog(logconf *ZaplogConf) *zap.SugaredLogger {
+	// 如果没提供日志文件名，则默认仅仅输出到console
+	if logconf.Filename == "" || len(logconf.Filename) == 0{
+		return log.SugaredLogger
+	}
+
     var w zapcore.WriteSyncer
 	if logconf.DailyBackup {
 		hook := timeHook(logconf.Filename,logconf.MaxAge,logconf.MaxBackups)
@@ -175,10 +180,19 @@ func setupLog(logconf *ZaplogConf) *zap.SugaredLogger {
 	// 时间格式
 	encoderConfig.EncodeTime = defaultTimeEncoder
 
+	var writes []zapcore.WriteSyncer
+	if logconf.EnableConsole{
+		writes = make([]zapcore.WriteSyncer,2)
+		writes[0] = zapcore.AddSync(os.Stdout) // console
+		writes[1] = w  // file
+	}else{
+		writes = make([]zapcore.WriteSyncer,1)
+		writes[0] = w
+	}
+
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(defaultEncoderConfig()),
-		//zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout),w), //console and file
-		zapcore.NewMultiWriteSyncer(w), //just file
+		zapcore.NewMultiWriteSyncer(writes...),
 		level,
 	)
 
