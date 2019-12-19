@@ -12,6 +12,8 @@ func TestInfo(t *testing.T) {
 }
 
 func TestDebugf(t *testing.T) {
+	SetLevel("info")
+	Debugf("log level is %s","info")
 	SetLevel("debug")
 	Debugf("log level is %s","debug")
 }

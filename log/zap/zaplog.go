@@ -20,9 +20,11 @@ type zapLog struct{
 var log zapLog
 var conf *ZaplogConf
 
-var logLevel = zap.NewAtomicLevel()
+var logLevel  * zap.AtomicLevel
 
 func init(){
+	level := zap.NewAtomicLevel()
+	logLevel = &level
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(defaultEncoderConfig()),
 		zapcore.AddSync(os.Stdout),
