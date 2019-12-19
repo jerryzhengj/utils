@@ -18,6 +18,7 @@ type zapLog struct{
 }
 
 var log zapLog
+var conf *ZaplogConf
 
 var logLevel = zap.NewAtomicLevel()
 
@@ -141,17 +142,35 @@ func defaultEncoderConfig() zapcore.EncoderConfig {
 	}
 }
 
-func InitLogger(logPath,logLevel string,dailyBackup bool,maxSize,maxBackups,maxAge int) *zap.SugaredLogger {
+func InitLogger(logconf *ZaplogConf){
+	conf = logconf
+	if conf.MaxAge < 1{
+		conf.MaxAge = 1
+	}
+
+	if conf.MaxBackups < 0{
+		conf.MaxBackups = 0
+	}
+
+	if conf.MaxSize <= 0{
+		conf.MaxSize = 1
+	}
+
+	setupLog(logconf)
+
+}
+
+func setupLog(logconf *ZaplogConf) *zap.SugaredLogger {
     var w zapcore.WriteSyncer
-	if dailyBackup {
-		hook := timeHook(logPath,maxAge,maxBackups)
+	if logconf.DailyBackup {
+		hook := timeHook(logconf.Filename,logconf.MaxAge,logconf.MaxBackups)
 		w = zapcore.AddSync(hook)
 	}else{
-		hook := sizeHook(logPath,maxSize,maxBackups,maxAge)
+		hook := sizeHook(logconf.Filename,logconf.MaxSize,logconf.MaxBackups,logconf.MaxAge)
 		w = zapcore.AddSync(&hook)
 	}
 
-	var level  = parseLevel(logLevel)
+	var level  = parseLevel(logconf.LogLevel)
 	encoderConfig := zap.NewProductionEncoderConfig()
 	// 时间格式
 	encoderConfig.EncodeTime = defaultTimeEncoder
