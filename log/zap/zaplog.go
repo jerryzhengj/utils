@@ -178,6 +178,7 @@ func setupLog(logconf *ZaplogConf) *zap.SugaredLogger {
 	}
 
 	var level  = parseLevel(logconf.LogLevel)
+	logLevel.SetLevel(level)
 	encoderConfig := zap.NewProductionEncoderConfig()
 	// 时间格式
 	encoderConfig.EncodeTime = defaultTimeEncoder
@@ -195,7 +196,7 @@ func setupLog(logconf *ZaplogConf) *zap.SugaredLogger {
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(defaultEncoderConfig()),
 		zapcore.NewMultiWriteSyncer(writes...),
-		level,
+		logLevel,
 	)
 
 	log = zapLog{
