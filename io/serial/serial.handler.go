@@ -81,13 +81,13 @@ func (session *Port)Read(startTimeMilSec int64,size int)([]byte,error){
 }
 
 func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
-	//log.Debugf("readNbytes size:%d", size)
+	log.Debugf("readNbytes size:%d", size)
 	hasRead := 0
 	buffer := bytes.Buffer{}
 	for {
 		p := make([]byte, size - hasRead)
 		readSize, err := session.conn.Read(p)
-		//log.Debugf("readNbytes size:%d,error=%v", readSize,err)
+		log.Debugf("readNbytes size:%d,error=%v", readSize,err)
 		if err != nil {
 			if err != io.EOF {
 				log.Errorf("readNbytesFromSerial failed with error:%s",err)
@@ -108,7 +108,7 @@ func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
 	}
 
 	data := buffer.Bytes()
-	//log.Debugf("readFromSerial bytes:%v",data)
+	log.Debugf("readFromSerial bytes:%v",data)
 	return data,nil
 }
 
@@ -126,7 +126,7 @@ func (session Port)readFromChannel(size int)([]byte,error) {
 			buffer[hasRead] = b
 			hasRead++
 			if hasRead >= size {
-				//log.Debugf("readFromChannel bytes:%v",buffer)
+				log.Debugf("readFromChannel bytes:%v",buffer)
 				return buffer, nil
 			}
 		case <-time.After(timeout):
