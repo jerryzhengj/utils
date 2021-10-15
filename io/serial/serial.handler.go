@@ -81,13 +81,13 @@ func (session *Port)Read(startTimeMilSec int64,size int)([]byte,error){
 }
 
 func (session Port)readFromSerial(startTimeMilSec int64,size int)([]byte,error){
-	log.Debugf("readNbytes size:%d", size)
+	log.Infof("readNbytes size:%d", size)
 	hasRead := 0
 	buffer := bytes.Buffer{}
 	for {
 		p := make([]byte, size - hasRead)
 		readSize, err := session.conn.Read(p)
-		log.Debugf("readNbytes size:%d,error=%v", readSize,err)
+		log.Infof("readNbytes size:%d,error=%v", readSize,err)
 		if err != nil {
 			if err != io.EOF {
 				log.Errorf("readNbytesFromSerial failed with error:%s",err)
