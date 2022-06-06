@@ -8,8 +8,8 @@ import (
 
 func TestGetConfig(t *testing.T) {
 	sc := ServerCfg{
-			IpAddr: "http://192.168.2.22",
-			Port:   9999,
+			IpAddr: "http://xxx.com",
+			Port:   80,
 			Group: "tsp-mock",
 			DataId: "main-config.yaml",
 	}
